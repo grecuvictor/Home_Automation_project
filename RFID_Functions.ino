@@ -1,3 +1,22 @@
+byte dataBlock_Access_Denied[]    = {
+        0x00, 0x00, 0x00, 0x00, //  0, 0, 0, 0,
+        0x00, 0x00, 0x00, 0x00, //  0, 0, 0, 0,
+        0x00, 0x00, 0x00, 0x00, //  0, 0, 0, 0,
+        0x00, 0x00, 0x00, 0x00  //  0, 0, 0, 0
+    };                          //Door access Denied ( Block 6 )
+byte dataBlock_Access_Granted[]    = {
+        0xff, 0xff, 0xff, 0xff, //  255, 255, 255, 255,
+        0xff, 0xff, 0xff, 0xff, //  255, 255, 255, 255,
+        0x00, 0x00, 0x00, 0x00, //  0,   0,   0,   0,
+        0x00, 0x00, 0x00, 0x00  //  0,   0,   0,   0
+    };                          //Door access Granted ( Block 6 )
+byte dataBlock_Access_Master[]    = {
+        0xff, 0xff, 0xff, 0xff, //  255, 255, 255, 255,
+        0xff, 0xff, 0xff, 0xff, //  255, 255, 255, 255,
+        0xff, 0xff, 0xff, 0xff, //  255, 255, 255, 255,
+        0x00, 0x00, 0x00, 0x00  //  0,   0,   0,   0
+    };                          //Master info ( Block 5 )
+    
 /**
  * Helper routine to dump a byte array as hex values to Serial.
  */
@@ -55,16 +74,61 @@ int readBlock(int blockNumber, byte arrayAddress[])
 {     
   byte buffersize = 18; 
   byte status = mfrc522.MIFARE_Read(blockNumber, arrayAddress, &buffersize);
+  byte is_true = 1;                   //Boolean variable, -> 0 if one bit != 
+  
   if (status != MFRC522::STATUS_OK) {
           Serial.print("Failed reading");
           Serial.println(mfrc522.GetStatusCodeName(status));
           return 1;                   //Error
   }
+  for (byte i=0; i<15; i++)
+  {
+     if(arrayAddress[i] != dataBlock_Access_Master[i])
+          is_true = 0;                 //Verify if Master card info 
+  }
   Serial.println("Success reading");
+  if (is_true)
+      return 2;                       // Status 2 if Master Card scanned
   return 0;                          //status?0:Succes;1:Error
 }
 
-/*/
+/*
+ * Verify if the card has access at entrance
+ */
+ 
+int Has_Access(int blockNumber, byte arrayAddress[]) 
+{     
+  byte buffersize = 18; 
+  byte status = mfrc522.MIFARE_Read(blockNumber, arrayAddress, &buffersize);
+  byte is_true = 1;                   //Boolean variable, -> 0 if one bit != 
+  
+  if (status != MFRC522::STATUS_OK) {
+          Serial.print("Failed reading");
+          Serial.println(mfrc522.GetStatusCodeName(status));
+          return 1;                   //Error Reading 
+  }
+  for (byte i=0; i<15; i++)
+  {
+     if(arrayAddress[i] != dataBlock_Access_Granted[i])
+          is_true = 0;                 //Verify if the card has access 
+  }
+  Serial.println("Success reading");
+  if (is_true)
+      return 2;                       // Status 2 if Card has access
+  return 0;                          //  0 if card OK but has no access
+}
+
+/*
+ * Open door / Switch to GREEN Led
+ */
+
+void Open_Door(void)
+{
+  digitalWrite(R_G_select_PIN, HIGH);
+  delay(2000);
+  digitalWrite(R_G_select_PIN, LOW);
+}
+/*
  * Write in a specific block(blockNumber)
  */
  
@@ -78,5 +142,24 @@ int writeBlock(int blockNumber, byte arrayAddress[])
            return 4;//return "4" as error message
   }
   Serial.println("block was written");
+}
+
+void Card_write_info(byte Access_Status)
+{
+  if(Access_Status == 2)
+  {
+    writeBlock(blockAddr, dataBlock_Access_Denied);               //Write Not Access info in block 6 (Access Information Block)
+    mfrc522.PICC_DumpMifareClassicSectorToSerial(&(mfrc522.uid), &key, sector);
+    Serial.println("Acc Denied write DNE");
+  }
+  else if(Access_Status == 0)
+         {
+            writeBlock(blockAddr, dataBlock_Access_Granted);      //Write Access info in block 6 (Access Information Block)
+            mfrc522.PICC_DumpMifareClassicSectorToSerial(&(mfrc522.uid), &key, sector);
+            Serial.println("Acc GRANTED write DNE + Open Door");
+            Open_Door();
+         }
+         else
+            Serial.println("Error writing. Please Scan Master Card again...");
 }
 
