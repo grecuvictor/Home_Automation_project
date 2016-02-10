@@ -1,3 +1,6 @@
+
+#define Timer_Front_Door    2000    //Time untill the front door remains Open (ms)
+
 byte dataBlock_Access_Denied[]    = {
         0x00, 0x00, 0x00, 0x00, //  0, 0, 0, 0,
         0x00, 0x00, 0x00, 0x00, //  0, 0, 0, 0,
@@ -17,9 +20,9 @@ byte dataBlock_Access_Master[]    = {
         0x00, 0x00, 0x00, 0x00  //  0,   0,   0,   0
     };                          //Master info ( Block 5 )
     
-/**
+/*--------------------------------------------------------------------------------------------
  * Helper routine to dump a byte array as hex values to Serial.
- */
+ -------------------------------------------------------------------------------------------*/
  
 void Show_info_RFID(MFRC522 Card_tmp)
 {
@@ -40,9 +43,9 @@ void Show_info_RFID(MFRC522 Card_tmp)
     Serial.println("MASTERRRRRRR");
 }
 
-/*
+/*--------------------------------------------------------------------------------------------
  * Dump Info to Serial Console
- */
+ -------------------------------------------------------------------------------------------*/
  
 void dump_byte_array(byte *buffer, byte bufferSize) {
     for (byte i = 0; i < bufferSize; i++) {
@@ -51,9 +54,9 @@ void dump_byte_array(byte *buffer, byte bufferSize) {
     }
 }
 
-/*
+/*--------------------------------------------------------------------------------------------
  *Card Authenticate status
-*/
+  -------------------------------------------------------------------------------------------*/
 
 void Status_check(byte status_received)
 {
@@ -66,9 +69,9 @@ void Status_check(byte status_received)
     Serial.println(F("PCD_Authenticate() finished. UID validation... "));
 }
 
-/*/
+/*--------------------------------------------------------------------------------------------
  * Read a specific block(blockNumber) from RFID and save the data in the arrayAddress variable
- */
+ -------------------------------------------------------------------------------------------*/
  
 int readBlock(int blockNumber, byte arrayAddress[]) 
 {     
@@ -92,9 +95,9 @@ int readBlock(int blockNumber, byte arrayAddress[])
   return 0;                          //status?0:Succes;1:Error
 }
 
-/*
+/*--------------------------------------------------------------------------------------------
  * Verify if the card has access at entrance
- */
+ -------------------------------------------------------------------------------------------*/
  
 int Has_Access(int blockNumber, byte arrayAddress[]) 
 {     
@@ -118,19 +121,20 @@ int Has_Access(int blockNumber, byte arrayAddress[])
   return 0;                          //  0 if card OK but has no access
 }
 
-/*
+/*--------------------------------------------------------------------------------------------
  * Open door / Switch to GREEN Led
- */
+ -------------------------------------------------------------------------------------------*/
 
 void Open_Door(void)
 {
   digitalWrite(R_G_select_PIN, HIGH);
-  delay(2000);
+  delay(Timer_Front_Door);
   digitalWrite(R_G_select_PIN, LOW);
 }
-/*
+
+/*--------------------------------------------------------------------------------------------
  * Write in a specific block(blockNumber)
- */
+ -------------------------------------------------------------------------------------------*/
  
 int writeBlock(int blockNumber, byte arrayAddress[]) 
 {
@@ -144,6 +148,10 @@ int writeBlock(int blockNumber, byte arrayAddress[])
   Serial.println("block was written");
 }
 
+/*--------------------------------------------------------------------------------------------
+ * Write info on RFID depending the current data in block 6
+ -------------------------------------------------------------------------------------------*/
+ 
 void Card_write_info(byte Access_Status)
 {
   if(Access_Status == 2)
