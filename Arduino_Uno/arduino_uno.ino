@@ -12,7 +12,9 @@
  * SPI MISO    MISO                   12 
  * SPI SCK     SCK                    13  
  * -----------------------------------------------------------------------------------------
- * DIGITAL     RGB_LED                6
+ * DIGITAL     R_LED                  6
+ * DIGITAL     G_LED                  7
+ * DIGITAL     B_LED                  4
  */
 
 #include <SPI.h>
@@ -22,8 +24,12 @@
 #include <Wire.h>
 
 #define RST_PIN         5              //  RST PIN from RFID 
-#define R_G_select_PIN  6              //  Red / Green Relay pin from RGB led
+#define R_select_PIN    6              //  Set/Reset Red pin from RGB led
+#define G_select_PIN    7              //  Set/Reset Green pin from RGB led
+#define B_select_PIN    4              //  Set/Reset Blue pin from RGB led
 #define SS_PIN          10             //  SS (SDA) Pin from RFID
+#define Buzz_PIN        8              //  Buzzer pin
+#define Door_PIN        9              //  Door Pin (Open/Close)
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);        // Create MFRC522 instance.
 MFRC522::MIFARE_Key key;                //Create a MIFARE_Key struct for holding the card information
@@ -40,12 +46,18 @@ void setup() {
     while (!Serial);                                                                    // Wait untill serial communication starts
     SPI.begin();                                                                        // Initialize SPI bus
     mfrc522.PCD_Init();                                                                 // Initialize MFRC522 card
-    pinMode(R_G_select_PIN, OUTPUT);
+    pinMode(R_select_PIN, OUTPUT);
+    pinMode(G_select_PIN, OUTPUT);
+    pinMode(B_select_PIN, OUTPUT);
+    pinMode(Door_PIN,     OUTPUT);
     for (byte i = 0; i < 6; i++) {
         key.keyByte[i] = 0xFF;
     }                                                                                 // using FFFFFFFFFFFFh which is the default at chip delivery from the factory
     Serial.println(F("Setup Ready: Scanning ..."));
-    digitalWrite(R_G_select_PIN, LOW);                                                //Start with RED Led (Permission denied)
+    digitalWrite(R_select_PIN, HIGH); //Start with RED Led (Permission denied)     
+    digitalWrite(G_select_PIN, LOW); 
+    digitalWrite(B_select_PIN, LOW); 
+    digitalWrite(Door_PIN,     LOW);
 }
 
 void loop() {
@@ -73,7 +85,7 @@ void loop() {
     if (CardAccess_Level == 2)                                                //read the block back
     {
       Serial.println("MASTER FOUND");
-      Open_Door();
+      Open_Door(CardAccess_Level);
       Write_enable = 1;
     }
     else if(CardAccess_Level == 0)
@@ -85,7 +97,7 @@ void loop() {
               Write_enable = 0;                                               //Dezactivate write option 
             }
             else if((CardAccess_Level == 0) && (Access_Status == 2))
-                    Open_Door();                                              // Door opened for 2 seconds  
+                    Open_Door(CardAccess_Level);                              // Door opened for 2 seconds  
           }             
     mfrc522.PICC_HaltA();                                                     // Stop encryption on PCD
     mfrc522.PCD_StopCrypto1();

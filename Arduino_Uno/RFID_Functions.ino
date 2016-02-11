@@ -1,5 +1,6 @@
 
-#define Timer_Front_Door    2000    //Time untill the front door remains Open (ms)
+#define Timer_Front_Door    500    //Time untill the front door remains Open (ms)
+#define Timer_Buzzer        250    //Time for buzzer ON
 
 byte dataBlock_Access_Denied[]    = {
         0x00, 0x00, 0x00, 0x00, //  0, 0, 0, 0,
@@ -125,11 +126,36 @@ int Has_Access(int blockNumber, byte arrayAddress[])
  * Open door / Switch to GREEN Led
  -------------------------------------------------------------------------------------------*/
 
-void Open_Door(void)
+void Open_Door(byte level)
 {
-  digitalWrite(R_G_select_PIN, HIGH);
-  delay(Timer_Front_Door);
-  digitalWrite(R_G_select_PIN, LOW);
+  if(level == 0)
+  {
+  digitalWrite(Door_PIN,     HIGH); //Open Door
+  digitalWrite(G_select_PIN, HIGH);
+  digitalWrite(R_select_PIN, LOW);
+  for (byte i = 0; i < 4; i++)
+  {
+    Buzzer_beep();
+    delay(Timer_Front_Door);
+  }
+  digitalWrite(G_select_PIN, LOW);
+  digitalWrite(Door_PIN,     LOW);  //Close Door
+  digitalWrite(R_select_PIN, HIGH); //Green LED ON for Timer_Front_Door seconds (User access)
+  }
+  else
+  {
+  digitalWrite(B_select_PIN, HIGH);
+  digitalWrite(Door_PIN,     HIGH); //Open Door
+  digitalWrite(R_select_PIN, LOW);
+  for (byte i = 0; i < 4; i++)
+  {
+    Buzzer_beep();
+    delay(Timer_Front_Door);
+  }
+  digitalWrite(B_select_PIN, LOW);
+  digitalWrite(Door_PIN,     LOW);  //Close Door
+  digitalWrite(R_select_PIN, HIGH); //Blue LED ON for Timer_Front_Door seconds (Master access)
+  }
 }
 
 /*--------------------------------------------------------------------------------------------
@@ -165,9 +191,22 @@ void Card_write_info(byte Access_Status)
             writeBlock(blockAddr, dataBlock_Access_Granted);      //Write Access info in block 6 (Access Information Block)
             mfrc522.PICC_DumpMifareClassicSectorToSerial(&(mfrc522.uid), &key, sector);
             Serial.println("Acc GRANTED write DNE + Open Door");
-            Open_Door();
+            Open_Door(Access_Status);
          }
          else
             Serial.println("Error writing. Please Scan Master Card again...");
+  for(byte i = 0; i<2; i++)
+    Buzzer_beep(); 
+}
+
+/*--------------------------------------------------------------------------------------------
+ * Keeps Buzzer ON for 300 ms
+ -------------------------------------------------------------------------------------------*/
+ 
+void Buzzer_beep(void)
+{
+    digitalWrite(Buzz_PIN, HIGH);
+    delay(Timer_Buzzer);
+    digitalWrite(Buzz_PIN, LOW);
 }
 
