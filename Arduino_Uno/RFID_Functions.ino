@@ -111,7 +111,7 @@ int Has_Access(int blockNumber, byte arrayAddress[])
           Serial.println(mfrc522.GetStatusCodeName(status));
           return 1;                   //Error Reading 
   }
-  for (byte i=0; i<15; i++)
+  for (byte i = 0; i < 15; i++)
   {
      if(arrayAddress[i] != dataBlock_Access_Granted[i])
           is_true = 0;                 //Verify if the card has access 
@@ -165,7 +165,6 @@ void Open_Door(byte level)
 int writeBlock(int blockNumber, byte arrayAddress[]) 
 {
   byte status = mfrc522.MIFARE_Write(blockNumber, arrayAddress, 16);//valueBlockA is the block number, MIFARE_Write(block number (0-15), byte array containing 16 values, number of bytes in block (=16))
-  //status = mfrc522.MIFARE_Write(9, value1Block, 16);
   if (status != MFRC522::STATUS_OK) {
            Serial.print("MIFARE_Write() failed: ");
            Serial.println(mfrc522.GetStatusCodeName(status));
@@ -182,20 +181,20 @@ void Card_write_info(byte Access_Status)
 {
   if(Access_Status == 2)
   {
-    writeBlock(blockAddr, dataBlock_Access_Denied);               //Write Not Access info in block 6 (Access Information Block)
+    writeBlock(blockAddr, dataBlock_Access_Denied);                               //Write Not Access info in block 6 (Access Information Block)
     mfrc522.PICC_DumpMifareClassicSectorToSerial(&(mfrc522.uid), &key, sector);
     Serial.println("Acc Denied write DNE");
   }
   else if(Access_Status == 0)
          {
-            writeBlock(blockAddr, dataBlock_Access_Granted);      //Write Access info in block 6 (Access Information Block)
+            writeBlock(blockAddr, dataBlock_Access_Granted);                      //Write Access info in block 6 (Access Information Block)
             mfrc522.PICC_DumpMifareClassicSectorToSerial(&(mfrc522.uid), &key, sector);
             Serial.println("Acc GRANTED write DNE + Open Door");
             Open_Door(Access_Status);
          }
          else
             Serial.println("Error writing. Please Scan Master Card again...");
-  for(byte i = 0; i<2; i++)
+  for(byte i = 0; i < 2; i++)
     Buzzer_beep(); 
 }
 

@@ -15,6 +15,8 @@
  * DIGITAL     R_LED                  6
  * DIGITAL     G_LED                  7
  * DIGITAL     B_LED                  4
+ * DIGITAL     Buzz_PIN               8
+ * DIGITAL     Door_PIN               9
  */
 
 #include <SPI.h>
@@ -32,7 +34,7 @@
 #define Door_PIN        9              //  Door Pin (Open/Close)
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);        // Create MFRC522 instance.
-MFRC522::MIFARE_Key key;                //Create a MIFARE_Key struct for holding the card information
+MFRC522::MIFARE_Key key;                 //Create a MIFARE_Key struct for holding the card information
 
 byte sector         = 1;                 //Desired Sector for information reading
 byte blockMaster    = 5;                 //Master block info
@@ -49,22 +51,22 @@ void setup() {
     pinMode(R_select_PIN, OUTPUT);
     pinMode(G_select_PIN, OUTPUT);
     pinMode(B_select_PIN, OUTPUT);
-    pinMode(Door_PIN,     OUTPUT);
+    pinMode(Door_PIN,     OUTPUT);                                                      //Set Output Pins
     for (byte i = 0; i < 6; i++) {
         key.keyByte[i] = 0xFF;
     }                                                                                 // using FFFFFFFFFFFFh which is the default at chip delivery from the factory
     Serial.println(F("Setup Ready: Scanning ..."));
-    digitalWrite(R_select_PIN, HIGH); //Start with RED Led (Permission denied)     
+    digitalWrite(R_select_PIN, HIGH);                                                 //Start with RED Led (Permission denied)     
     digitalWrite(G_select_PIN, LOW); 
     digitalWrite(B_select_PIN, LOW); 
-    digitalWrite(Door_PIN,     LOW);
+    digitalWrite(Door_PIN,     LOW);                                                  //Rest of PIN's are set LOW as default untill Arduino receives an event
 }
 
 void loop() {
     byte status;                                                                    //Scan satus
     byte readbackblock[18];                                                         //Variable use for reading a block
-    byte CardAccess_Level;                                                          
-    byte Access_Status;
+    byte CardAccess_Level;                                                          //Determine if it's master or not
+    byte Access_Status;                                                             //Determine if User has access (block 6 info)
     
     if ( ! mfrc522.PICC_IsNewCardPresent())
       return;                                                                     // Look for new cards
@@ -85,8 +87,8 @@ void loop() {
     if (CardAccess_Level == 2)                                                //read the block back
     {
       Serial.println("MASTER FOUND");
-      Open_Door(CardAccess_Level);
-      Write_enable = 1;
+      Open_Door(CardAccess_Level);                                            //Grants access inside
+      Write_enable = 1;                                                       //Next card will have the access info inverted (OK -> NOK & NOK -> OK)
     }
     else if(CardAccess_Level == 0)
           {
