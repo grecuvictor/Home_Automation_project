@@ -17,6 +17,9 @@
  * DIGITAL     B_LED                  4
  * DIGITAL     Buzz_PIN               8
  * DIGITAL     Door_PIN               9
+ * DIGITAL     PIR Sensor             3
+ * DIGITAL     Relay_PIN              2
+ * ANALOG      Light_Sensor           2
  */
 
 #include <SPI.h>
@@ -32,10 +35,14 @@
 #define SS_PIN          10             //  SS (SDA) Pin from RFID
 #define Buzz_PIN        8              //  Buzzer pin
 #define Door_PIN        9              //  Door Pin (Open/Close)
+#define Light_PIN       2               // Light Sensor 
+#define Relay           2               // Entrance Light Command / Reelay comand
+#define PIR_Sensor      3               // PIR sensor
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);        // Create MFRC522 instance.
 MFRC522::MIFARE_Key key;                 //Create a MIFARE_Key struct for holding the card information
 
+int  Light          = 0;                  //Light value readed from sensor
 byte sector         = 1;                 //Desired Sector for information reading
 byte blockMaster    = 5;                 //Master block info
 byte blockAddr      = 6;                 //Block Address for acces level
@@ -48,13 +55,16 @@ void setup() {
     while (!Serial);                                                                    // Wait untill serial communication starts
     SPI.begin();                                                                        // Initialize SPI bus
     mfrc522.PCD_Init();                                                                 // Initialize MFRC522 card
+    pinMode(Relay,        OUTPUT);
+    pinMode(Light_PIN,    INPUT);
+    pinMode(PIR_Sensor,   INPUT);
     pinMode(R_select_PIN, OUTPUT);
     pinMode(G_select_PIN, OUTPUT);
     pinMode(B_select_PIN, OUTPUT);
-    pinMode(Door_PIN,     OUTPUT);                                                      //Set Output Pins
+    pinMode(Door_PIN,     OUTPUT);                                                      //Set input/Output Pins
     for (byte i = 0; i < 6; i++) {
         key.keyByte[i] = 0xFF;
-    }                                                                                 // using FFFFFFFFFFFFh which is the default at chip delivery from the factory
+    }                                                                                // using FFFFFFFFFFFFh which is the default at chip delivery from the factory
     Serial.println(F("Setup Ready: Scanning ..."));
     digitalWrite(R_select_PIN, HIGH);                                                 //Start with RED Led (Permission denied)     
     digitalWrite(G_select_PIN, LOW); 
@@ -67,12 +77,24 @@ void loop() {
     byte readbackblock[18];                                                         //Variable use for reading a block
     byte CardAccess_Level;                                                          //Determine if it's master or not
     byte Access_Status;                                                             //Determine if User has access (block 6 info)
+    byte Pir_value;
+
+    Pir_value = digitalRead(PIR_Sensor);
+    Light = analogRead(Light_PIN);
+    Serial.println(Pir_value);
     
+    if ((Light < 500) && (digitalRead(PIR_Sensor)))
+    {
+       digitalWrite(Relay, 1);
+    }
+    else
+      digitalWrite(Relay, 0);
+      
     if ( ! mfrc522.PICC_IsNewCardPresent())
       return;                                                                     // Look for new cards
     if ( ! mfrc522.PICC_ReadCardSerial())
       return;                                                                     // Select one of the cards
-      
+    
     Show_info_RFID(mfrc522);                                                     // Dump key scanned info
     Serial.println(F("Key scanned"));
     status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
